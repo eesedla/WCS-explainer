@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How a body camera is supposed to be used on every shift</title>
+ 
+<!-- Brand faces are loaded from Google Fonts as stand-ins.
+     Swap these for Signal's real licensed faces when you have them. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+ 
+<style>
+  /* ============================================================
+     EDIT HERE FIRST — all the brand knobs live in :root.
+     Change a value once and it updates everywhere below.
+     ============================================================ */
+  :root {
+    /* Signal palette (from the brand guidelines) */
+    --signal-yellow: #f4c913;   /* the "signal light" accent */
+    --teal:          #23685b;   /* primary teal — active recording / the cycle */
+    --teal-rail:     #5aa394;   /* lighter teal for the cycle rail segment */
+    --slate:         #404f54;   /* setup / teardown steps */
+    --ink:           #27343a;   /* headline + titles */
+    --gray:          #404F54;   /* eyebrow + phase labels */
+    --gray-text:     #6b7479;   /* dek + body copy */
+    --gray-faint:    #a7aeb0;   /* source line */
+    --rail:          #dadedf;   /* default connector line */
+    --card-border:   #e7e3d6;
+ 
+    /* Type + layout */
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-label:   'Roboto Condensed', system-ui, sans-serif;
+    --card-width:   560px;      /* widen/narrow the whole graphic here */
+    --radius:       14px;
+  }
+ 
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+  body {
+    margin: 0;
+    padding: 40px 16px;
+    background: var(--cream);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+  }
+ 
+  /* ---------- The card ---------- */
+  .viz-container {
+    background: #ffffff;
+    overflow: hidden;
+    max-width: var(--card-width);
+    margin: 0 auto;
+  }
+  .viz-container::before {
+    content: '';
+    display: block;
+    height: 4px;
+    background: #F4C913;
+    width: 100%;
+  }
+
+  /* ---------- Header ---------- */
+  .viz-header { padding: 20px 20px 16px; }
+
+  .viz-kicker {
+    font-family: 'Gotham', 'Gotham Medium', sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    color: #404F54;
+    opacity: 0.65;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0;
+  }
+  .viz-heading {
+    font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #404F54;
+    line-height: 1.3;
+    margin-bottom: 0;
+  }
+  .viz-subheading {
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #404F54;
+    opacity: 0.72;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+ 
+  /* ---------- Steps (the vertical rail) ---------- */
+  .step { display: flex; gap: 16px; }
+ 
+  .rail {
+    width: 32px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .badge {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--signal-yellow);
+    border: 2px solid var(--slate);   /* setup/teardown ring */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .badge.cyc { border-color: var(--teal); }  /* cycle steps get a teal ring */
+ 
+  .conn {
+    width: 2px;
+    flex: 1;
+    min-height: 14px;
+    background: var(--rail);
+    margin: 3px 0;
+  }
+  .conn.tl { background: var(--teal-rail); }  /* rail segment inside the cycle */
+ 
+  .sbody { padding-bottom: 20px; flex: 1; }
+ 
+  .phase {
+    font-family: var(--font-label);
+    font-weight: 700;
+    letter-spacing: .11em;
+    font-size: 11px;
+    color: var(--gray);
+    margin: 2px 0 7px;
+  }
+  .phase .rep { color: var(--teal); }
+ 
+  .stitle {
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.25;
+    color: var(--ink);
+    margin: 0 0 3px;
+  }
+  .sdesc {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--gray-text);
+    margin: 0;
+  }
+  .loop {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--teal);
+  }
+  .loop .ico { font-size: 14px; }
+
+  /* ---------- Mode diagram ---------- */
+  .mode-break {
+    background: #f3f5f6;
+    border-radius: 8px;
+    padding: 14px 10px 10px;
+  }
+
+  /* ---------- Scroll animations ---------- */
+  .step, .mode-break {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+  .step.is-visible, .mode-break.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ---------- Source ---------- */
+  .sig-src {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--gray-faint);
+    margin: 18px 0 0;
+  }
+ 
+  /* ---------- Small-screen tidy-up ---------- */
+  @media (max-width: 480px) {
+    .viz-heading { font-size: 20px; }
+    .viz-header { padding: 16px 16px 14px; }
+  }
+</style>
+</head>
+<body>
+ 
+<!-- ============================================================
+     THE GRAPHIC
+     Each step is one <div class="step"> block. To add, remove, or
+     reorder steps, copy a block and renumber the .badge.
+     - Add class "cyc" to a badge to give it the teal cycle ring.
+     - Add class "tl" to a .conn to colour that rail segment teal.
+     ============================================================ -->
+<div class="viz-container">
+  <div class="viz-header">
+
+    <p class="viz-kicker">SIGNAL CLEVELAND</p>
+    <h1 class="viz-heading">How a body camera is supposed to be used on every shift</h1>
+    <p class="viz-subheading">Cleveland's policy sets six steps for each tour of duty. The middle three repeat at every public contact. Nearly every disciplinary case traces back to a single broken step.</p>
+ 
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="rail"><div class="badge">1</div><div class="conn"></div></div>
+      <div class="sbody">
+        <div class="phase">START OF SHIFT</div>
+        <div class="stitle">Inspect &amp; mount the camera</div>
+        <p class="sdesc">Officers must inspect the camera for damage, then mount it upright on their upper chest so it captures their field of view.</p>
+      </div>
+    </div>
+ 
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="rail"><div class="badge cyc">2</div><div class="conn tl"></div></div>
+      <div class="sbody">
+        <div class="phase">DURING THE TOUR&nbsp;&middot;&nbsp;<span class="rep">repeats at every public contact</span></div>
+        <div class="stitle">Buffering mode</div>
+        <p class="sdesc">In buffering mode, the cameras continuously loop thirty seconds of video with no audio.
+Officers leave the camera in buffering mode for the duration of their tour of duty, so the WCS can be easily placed into event mode when required. 
+</p>
+      </div>
+    </div>
+ 
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="rail"><div class="badge cyc">3</div><div class="conn tl"></div></div>
+      <div class="sbody">
+        <div class="stitle">Switch to event mode</div>
+        <p class="sdesc">Before any call or public contact, double-press the button. A tone and blinking red light confirm audio and video are recording. Thirty seconds of silent pre-event video is captured from buffering mode. When practical and safe, they should tell citizens the camera is recording. </p>
+      </div>
+    </div>
+ 
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="rail"><div class="badge cyc">4</div><div class="conn"></div></div>
+      <div class="sbody">
+        <div class="stitle">Record until the contact ends</div>
+        <p class="sdesc">Keep recording until the contact concludes or a supervisor orders a stop. Returning to buffering early requires a spoken reason, recorded on camera.</p>
+        <span class="loop"><span class="ico">&#8635;</span> Returns to buffering, then repeats at the next contact</span>
+      </div>
+    </div>
+
+    <!-- Mode comparison diagram -->
+    <div class="step">
+      <div class="rail"><div class="conn"></div></div>
+      <div class="sbody" style="padding-bottom: 8px;">
+    <div class="mode-break">
+      <svg viewBox="0 0 500 162" xmlns="http://www.w3.org/2000/svg" width="100%" aria-label="Diagram comparing buffering and event recording modes">
+        <defs>
+          <clipPath id="pre-evt-clip">
+            <rect x="158" y="22" width="63" height="41"/>
+          </clipPath>
+        </defs>
+
+        <!-- Column header labels -->
+        <text x="104" y="13" text-anchor="middle" font-family="inherit" font-size="10" font-weight="600" fill="#8a9499">Buffering Mode</text>
+
+        <text x="307" y="13" text-anchor="middle" font-family="inherit" font-size="10" font-weight="600" fill="#8a9499">Event Mode</text>
+        <text x="446" y="13" text-anchor="middle" font-family="inherit" font-size="10" font-weight="600" fill="#8a9499">Buffering Mode</text>
+
+        <!-- Row label: Video -->
+        <text x="44" y="47" text-anchor="end" font-family="inherit" font-size="13" font-weight="700" fill="#27343a">Video</text>
+
+        <!-- Video row: gray (buffering), pink (pre-event + event), gray (buffering) -->
+        <rect x="50" y="22" width="106" height="41" rx="7" fill="#e7e9ea"/>
+        <rect x="158" y="22" width="234" height="41" rx="7" fill="#fce9e9" stroke="#e5a8a8" stroke-width="1.5"/>
+        <text clip-path="url(#pre-evt-clip)" text-anchor="middle" font-family="inherit" font-size="8" fill="#a05050">
+          <tspan x="189" y="35">30 seconds</tspan>
+          <tspan x="189" dy="10">captured from</tspan>
+          <tspan x="189" dy="10">buffering mode</tspan>
+        </text>
+        <rect x="392" y="22" width="106" height="41" rx="7" fill="#e7e9ea"/>
+
+        <!-- Row label: Audio -->
+        <text x="44" y="96" text-anchor="end" font-family="inherit" font-size="13" font-weight="700" fill="#27343a">Audio</text>
+
+        <!-- Audio row: gray "no audio" (buffering + pre-event), teal "audio + video" (event), gray (buffering) -->
+        <rect x="50" y="71" width="169" height="41" rx="7" fill="#e7e9ea"/>
+        <rect x="221" y="71" width="171" height="41" rx="7" fill="#d4ede9" stroke="#8fc4ba" stroke-width="1.5"/>
+        <rect x="392" y="71" width="106" height="41" rx="7" fill="#e7e9ea"/>
+
+        <!-- Vertical dividers -->
+        <line x1="158" y1="17" x2="158" y2="117" stroke="#c5cbce" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="221" y1="17" x2="221" y2="117" stroke="#b0bbbf" stroke-width="1"/>
+        <line x1="392" y1="17" x2="392" y2="117" stroke="#b0bbbf" stroke-width="1"/>
+
+        <!-- Annotation dots -->
+        <circle cx="221" cy="122" r="2.5" fill="#8a9499"/>
+        <circle cx="392" cy="122" r="2.5" fill="#8a9499"/>
+
+        <!-- Annotation labels -->
+        <text x="221" y="135" text-anchor="middle" font-family="inherit" font-size="10" fill="#6b7479">Double-press: tone + red light,</text>
+        <text x="221" y="147" text-anchor="middle" font-family="inherit" font-size="10" fill="#6b7479">audio starts</text>
+        <text x="392" y="135" text-anchor="middle" font-family="inherit" font-size="10" fill="#6b7479">Recording ends</text>
+
+      </svg>
+    </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step">
+      <div class="rail"><div class="badge">5</div><div class="conn"></div></div>
+      <div class="sbody">
+        <div class="stitle">Tag and categorize</div>
+        <p class="sdesc">While touring, officers categorize captured footage using an online application. The Axon View app allows officers to stream footage directly to their personal phones, so they can view and tag it. </p>
+       <p class="sdesc" style="margin-top: 0.75em;">According to Axon, footage is never stored locally and the app cannot be used to alter or delete videos. Cleveland’s policy specifies officers cannot use the video for anything other than official purposes or transfer it anywhere except Evidence.com. </p>
+
+    </div>
+    </div>
+ 
+    <!-- Step 6 (last step: no .conn) -->
+    <div class="step">
+      <div class="rail"><div class="badge">6</div></div>
+      <div class="sbody">
+        <div class="phase">END OF SHIFT</div>
+        <div class="stitle">Dock the camera and upload to Evidence.com</div>
+        <p class="sdesc">Place it in the docking station, which uploads the captured footage and charges the camera at the same time. Footage is encrypted and stored in the cloud, accessible to personnel based on their security clearance.</p>
+      </div>
+    </div>
+ 
+    
+
+</div>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        entry.target.style.transitionDelay = (i * 0.05) + 's';
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.step, .mode-break').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
